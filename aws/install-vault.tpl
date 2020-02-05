@@ -27,6 +27,7 @@ readonly CONSUL_VERSION=%{ if consul_version != "" }${consul_version}%{ endif }
 readonly CONSUL_DOWNLOAD_URL=%{ if consul_download_url != "" }${consul_download_url}%{ endif }
 readonly VAULT_VERSION=%{ if vault_version != "" }${vault_version}%{ endif }
 readonly VAULT_DOWNLOAD_URL=%{ if vault_download_url != "" }${vault_download_url}%{ endif }
+readonly KMS_KEY=${kms_key}
 
 function log {
   local -r level="$1"
@@ -375,7 +376,9 @@ EOF
 function generate_vault_config {
   local -r config_dir="$1"
   local -r user="$2"
-  local -r consul_http_token="$3"
+  local -r kms_key="$3"
+  local -r consul_http_token="$4"
+  local -r region=$(get_instance_region)
   local -r config_path="$config_dir/$VAULT_CONFIG_FILE"
 
   local instance_id=""
@@ -425,6 +428,10 @@ listener "tcp" {
 storage "consul" {
   token           = "$${consul_http_token}"
 }
+seal "awskms" {
+  region     = "$region"
+  kms_key_id = "$kms_key"
+}
 ui       = true  
 EOF
 )
@@ -465,11 +472,10 @@ EOF
 
   local -r service_config=$(cat <<EOF
 [Service]
-Type=notify
 User=$user
 Group=$user
 ExecStart=$exec_string
-ExecReload=$bin_dir/$service reload
+ExecReload=/bin/kill --signal HUP $MAINPID
 KillMode=process
 Restart=on-failure
 LimitNOFILE=65536
@@ -683,6 +689,7 @@ function main {
 
   generate_vault_config "$VAULT_PATH/config" \
     "$VAULT_USER" \
+    "$KMS_KEY" \
     "$consul_http_token"
 
   generate_systemd_config "vault" \
