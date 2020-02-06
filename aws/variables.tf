@@ -1,6 +1,7 @@
 variable "region" { default = "us-east-1" }
 variable "prefix" { default = "" }
-variable "ssh_key_name" { default = "" }
+variable "bastion_ssh_key_name" { default = "" }
+variable "consul_vault_ssh_key_name" { default = "" }
 variable "consul_cluster_size" { default = 5 }
 variable "vault_cluster_size" { default = 3 }
 variable "ami_id" { default = "" }
@@ -68,3 +69,5 @@ variable "force_bucket_destroy" {
 }
 variable "enable_consul_http_encryption" { default = false }
 variable "enable_deletion_protection" { default = true }
+variable "subnet_second_octet" { default = "0" }
+variable "create_bastion" { default = true }
